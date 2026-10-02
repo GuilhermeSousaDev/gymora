@@ -11,9 +11,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="flex min-h-full flex-1 flex-col pb-20 sm:pb-0">
-      <header className="sticky top-0 z-20 border-b border-rule bg-chalk/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-rule bg-chalk/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4">
-          <Link href="/dashboard" aria-label="Gymora">
+          <Link href="/dashboard" aria-label="Gymora" className="flex min-h-11 items-center">
             <Wordmark />
           </Link>
           <AppNav />

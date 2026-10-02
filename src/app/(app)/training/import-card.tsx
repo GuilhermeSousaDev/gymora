@@ -89,7 +89,7 @@ export function ImportPlanCard() {
           <p className="text-sm text-steel">{t("desc")}</p>
           <Textarea
             rows={6}
-            className="font-mono text-sm"
+            className="font-mono text-base sm:text-sm"
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={t("placeholder")}

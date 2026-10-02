@@ -1,0 +1,7 @@
+# Build settings are auto-detected by Netlify's Next.js runtime; this file only adds what it can't guess.
+
+[build.environment]
+  # Turbopack's build cache (.next/cache/turbopack) records env var values to know when to rebuild,
+  # so the server-only REMOTE_AI_API_KEY shows up there. That cache is never deployed or served:
+  # the key is NOT in .next/static (browser) or .next/server output. Keep scanning everything else.
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/.next/cache,.next/cache"

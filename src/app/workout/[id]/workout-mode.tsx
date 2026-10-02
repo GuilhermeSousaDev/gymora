@@ -253,10 +253,10 @@ export function WorkoutMode(props: {
 
   return (
     <div className={cn("flex min-h-dvh flex-1 flex-col transition-colors duration-500", toneClass)}>
-      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-8 pt-3">
+      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))]">
         {/* running totals */}
         <div className={cn("flex items-center justify-between border-b pb-3", line)}>
-          <Link href="/training" className={cn("flex items-center gap-1 text-sm", soft)}>
+          <Link href="/training" className={cn("-ml-2 flex min-h-11 items-center gap-1 px-2 text-sm", soft)}>
             <ChevronLeft className="size-4" /> {props.title}
           </Link>
           <p className="font-display text-2xl font-semibold tabular" aria-label={t("total")}>
@@ -343,7 +343,7 @@ export function WorkoutMode(props: {
               })}
               {exSets.length > 0 && st.phase === "idle" && (
                 <li>
-                  <button onClick={undoLastSet} className={cn("flex items-center p-1", soft)} aria-label="undo">
+                  <button onClick={undoLastSet} className={cn("flex size-11 items-center justify-center", soft)} aria-label="undo">
                     <Undo2 className="size-4" />
                   </button>
                 </li>
@@ -475,7 +475,7 @@ export function WorkoutMode(props: {
         {/* finish */}
         {!finishing ? (
           <div className="mt-6 flex items-center justify-between">
-            <button onClick={abandon} className={cn("flex items-center gap-1 text-sm", soft)}>
+            <button onClick={abandon} className={cn("-ml-2 flex min-h-11 items-center gap-1 px-2 text-sm", soft)}>
               <X className="size-4" /> {t("abandon")}
             </button>
             <Button
@@ -492,7 +492,7 @@ export function WorkoutMode(props: {
             <h2 className="font-display text-2xl font-semibold">{t("finishTitle")}</h2>
             <div>
               <Label>{t("sessionRpe")}</Label>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid grid-cols-5 gap-2 sm:flex sm:flex-wrap sm:gap-1.5">
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                   <Chip key={n} active={rpe === n} onClick={() => setRpe(n)}>
                     {n}
@@ -504,12 +504,13 @@ export function WorkoutMode(props: {
               <Label>{t("notes")}</Label>
               <Textarea rows={2} className="min-h-16" value={notes} onChange={(e) => setNotes(e.target.value)} />
             </label>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setFinishing(false)}>
-                {t("keepGoing")}
-              </Button>
-              <Button onClick={finish} loading={pending}>
+            {/* Phones: full-width, main action on top (closest to the thumb after typing notes) */}
+            <div className="flex flex-col gap-2 sm:flex-row-reverse sm:justify-start">
+              <Button size="lg" className="w-full sm:w-auto" onClick={finish} loading={pending}>
                 {t("confirmFinish")}
+              </Button>
+              <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setFinishing(false)}>
+                {t("keepGoing")}
               </Button>
             </div>
           </div>

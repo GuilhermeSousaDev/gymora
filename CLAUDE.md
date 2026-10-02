@@ -10,6 +10,7 @@
 - AI output is always parsed through the tolerant zod schemas in `src/lib/types.ts`; AI text must be in the user's locale.
 - The training framework exists twice: `docs/training-framework.md` (full, with sources) and `src/lib/ai/framework.ts` (prompt). Keep them in sync; never cite unverified studies.
 - Physique photos must never be persisted (memory only, sent to the vision model, then dropped).
+- Secrets (`REMOTE_AI_API_KEY`, DB URLs, auth secret) are read only in `server-only` modules; never use `NEXT_PUBLIC_` for them. Netlify's secrets scan skips `.next/cache` (see `netlify.toml`) because Turbopack's build cache stores env values; verify `.next/static` never contains a secret.
 - Groq free tier is rate-limited; test AI changes with `npm run ai:smoke`, one run at a time.
 - Plan generation: the weekly split is chosen in code (`src/lib/splits.ts`), the AI only fills exercises; `volumeIssues` in `src/lib/ai/tasks.ts` checks volume, frequency (>=2x/week) and filler days. Check quality with `scripts/plan-quality-smoke.ts`.
 - Plan import (`src/app/actions/import.ts`): deterministic parser first (`src/lib/plan-parser.ts`, test with `scripts/parser-check.ts`), AI only when the text is messy. Never change what the user wrote.
@@ -20,6 +21,12 @@
 - Barlow Condensed (`font-display`) for headings, numbers and timers; Barlow for body text.
 - Sentence case everywhere; no uppercase eyebrow labels, no "A · B · C" joins.
 - Training mode is the one bold moment: the whole screen takes the phase color.
+
+## Mobile first (most users are on phones)
+- Inputs are 16px on phones (`text-base sm:text-[15px]`); smaller makes iOS Safari zoom the page.
+- Tap targets >= ~44px on phones (`min-h-11 … sm:min-h-0`); buttons use min-height so long PT labels wrap instead of overflowing.
+- Respect safe areas (`env(safe-area-inset-*)`); viewport is `viewport-fit=cover`. The app is installable (`src/app/manifest.ts`, icons in `public/icons`).
+- Check at 360px wide: no horizontal overflow, no input < 16px, no small targets.
 
 ## Exercise illustrations
 - Drawn in code (no image files): `src/lib/exercise-art/` (rig + poses + name matching) and `src/components/exercise-figure.tsx`.

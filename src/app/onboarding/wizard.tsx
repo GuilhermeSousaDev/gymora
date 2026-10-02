@@ -123,7 +123,7 @@ export function OnboardingWizard({ initialProfile, canExit }: { initialProfile: 
         <Wordmark />
         <div className="flex items-center gap-3">
           {canExit && (
-            <Link href="/dashboard" className="text-sm text-muted hover:text-text">
+            <Link href="/dashboard" className="inline-flex min-h-11 items-center sm:min-h-0 text-sm text-muted hover:text-text">
               {tc("close")}
             </Link>
           )}
@@ -180,7 +180,7 @@ export function OnboardingWizard({ initialProfile, canExit }: { initialProfile: 
                 value={planText}
                 onChange={(e) => setPlanText(e.target.value)}
                 placeholder={t("planPlaceholder")}
-                className="font-mono text-xs"
+                className="font-mono text-base sm:text-xs"
               />
               <div className="flex flex-wrap items-center gap-3">
                 <input

@@ -60,7 +60,7 @@ export function PlanEditor({ id, initial, isActive }: { id: string; initial: Tra
 
   return (
     <div className="space-y-6">
-      <Link href="/training" className="inline-flex items-center gap-1 text-sm text-muted hover:text-text">
+      <Link href="/training" className="-ml-1 inline-flex min-h-11 items-center gap-1 pr-2 text-sm text-muted hover:text-text">
         <ChevronLeft className="size-4" /> {tt("title")}
       </Link>
 

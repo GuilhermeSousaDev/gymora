@@ -139,8 +139,8 @@ export function ProfileClient({ name, email, profile }: { name: string; email: s
             <ProfileFieldInput field={f} profile={data} onChange={setData} />
           </div>
         ))}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-          <Link href="/onboarding" className="flex items-center gap-1.5 text-sm text-muted hover:text-text">
+        <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] -mx-4 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-paper/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:pt-4">
+          <Link href="/onboarding" className="flex min-h-11 items-center gap-1.5 text-sm text-muted hover:text-text">
             <RotateCcw className="size-4" /> {t("redoOnboarding")}
           </Link>
           <div className="flex items-center gap-3">

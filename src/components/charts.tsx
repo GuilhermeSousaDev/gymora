@@ -79,7 +79,7 @@ export function WeeklyStackedChart({
       </div>
 
       <details className="mt-3 text-xs text-muted">
-        <summary className="cursor-pointer">Table</summary>
+        <summary className="cursor-pointer py-3 sm:py-0">Table</summary>
         <table className="mt-2 w-full tabular">
           <thead>
             <tr className="text-left">

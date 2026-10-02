@@ -35,7 +35,7 @@ export default async function TrainingPage() {
           <div className="space-y-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-display text-3xl font-bold leading-none">{active.name}</h2>
-              <Link href={`/training/plans/${active.id}`} className="text-sm font-medium underline underline-offset-4 hover:text-plate-blue">
+              <Link href={`/training/plans/${active.id}`} className="inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 hover:text-plate-blue sm:min-h-0">
                 {t("editPlan")}
               </Link>
             </div>
@@ -66,7 +66,7 @@ export default async function TrainingPage() {
               ))}
             </ul>
             <details className="rounded-[var(--r-md)] border border-rule bg-paper p-4">
-              <summary className="cursor-pointer text-sm text-muted">{active.plan.split || active.name}</summary>
+              <summary className="-my-2 cursor-pointer py-2 text-sm text-muted">{active.plan.split || active.name}</summary>
               <div className="mt-4">
                 <PlanView plan={active.plan} compact />
               </div>

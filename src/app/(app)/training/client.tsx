@@ -37,7 +37,7 @@ export function PlanRowActions({ id, isActive }: { id: string; isActive: boolean
       )}
       <Link
         href={`/training/plans/${id}`}
-        className="inline-flex h-8 items-center rounded-[var(--r-md)] border border-rule bg-paper px-3 text-sm hover:border-iron/40"
+        className="inline-flex h-10 items-center rounded-[var(--r-md)] sm:h-8 border border-rule bg-paper px-3 text-sm hover:border-iron/40"
       >
         {t("editPlan")}
       </Link>

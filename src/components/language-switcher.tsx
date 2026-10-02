@@ -30,7 +30,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
               router.refresh();
             })
           }
-          className={cn("rounded-[4px] px-2 py-1 font-semibold", locale === l ? "bg-iron text-paper" : "text-steel hover:text-iron")}
+          className={cn("min-h-9 min-w-10 rounded-[4px] px-2 font-semibold sm:min-h-0 sm:min-w-0 sm:py-1", locale === l ? "bg-iron text-paper" : "text-steel hover:text-iron")}
         >
           {l === "en" ? "EN" : "PT"}
         </button>

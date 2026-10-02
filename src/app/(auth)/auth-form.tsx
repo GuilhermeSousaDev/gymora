@@ -34,7 +34,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
-        <Link href="/" aria-label="Gymora">
+        <Link href="/" aria-label="Gymora" className="flex min-h-11 items-center">
           <Wordmark />
         </Link>
         <LanguageSwitcher />
@@ -70,7 +70,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       </Card>
       <p className="mt-4 text-center text-sm text-muted">
         {mode === "login" ? t("noAccount") : t("haveAccount")}{" "}
-        <Link href={mode === "login" ? "/signup" : "/login"} className="font-medium underline underline-offset-4 hover:text-plate-blue">
+        <Link href={mode === "login" ? "/signup" : "/login"} className="inline-flex min-h-11 items-center sm:min-h-0 font-medium underline underline-offset-4 hover:text-plate-blue">
           {mode === "login" ? t("signup") : t("login")}
         </Link>
       </p>

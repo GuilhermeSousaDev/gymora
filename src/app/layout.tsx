@@ -14,9 +14,13 @@ const barlowCondensed = Barlow_Condensed({
 export const metadata: Metadata = {
   title: "Gymora",
   description: "Evidence-based training plans for natural lifters",
+  // "Add to Home Screen" opens full screen, like an app
+  appleWebApp: { capable: true, title: "Gymora", statusBarStyle: "default" },
+  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };
 
-export const viewport: Viewport = { themeColor: "#eef0ec" };
+// viewport-fit=cover lets env(safe-area-inset-*) work on iPhones (notch, home indicator)
+export const viewport: Viewport = { themeColor: "#eef0ec", viewportFit: "cover" };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();

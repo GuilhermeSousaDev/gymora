@@ -33,7 +33,7 @@ export default async function Home() {
             >
               {t("cta")}
             </Link>
-            <Link href="/login" className="font-medium underline underline-offset-4 hover:text-plate-blue">
+            <Link href="/login" className="inline-flex min-h-11 items-center sm:min-h-0 font-medium underline underline-offset-4 hover:text-plate-blue">
               {t("login")}
             </Link>
           </div>

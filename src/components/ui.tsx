@@ -23,11 +23,17 @@ export function Button({
   disabled,
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" | "lg"; loading?: boolean }) {
-  const sizes = { sm: "h-8 px-3 text-sm", md: "h-10 px-4 text-[15px]", lg: "h-14 px-6 text-lg" };
+  // Phones get thumb-sized targets (~44px); desktop keeps the denser sizes
+  // min-height (not height) so a long label wraps inside the button instead of spilling out
+  const sizes = {
+    sm: "min-h-10 px-3 py-1.5 text-sm sm:min-h-8",
+    md: "min-h-11 px-4 py-2 text-base sm:min-h-10 sm:text-[15px]",
+    lg: "min-h-14 px-6 py-3 text-lg",
+  };
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-[var(--r-md)] transition-colors disabled:opacity-45 disabled:pointer-events-none",
+        "inline-flex items-center justify-center gap-2 rounded-[var(--r-md)] text-center leading-tight transition-colors disabled:opacity-45 disabled:pointer-events-none",
         variants[variant],
         sizes[size],
         className,
@@ -43,7 +49,7 @@ export function Button({
 
 /** A grouped surface. Use for forms and self-contained tools, not for every block of content. */
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("rounded-[var(--r-lg)] border border-rule bg-paper p-5", className)}>{children}</div>;
+  return <div className={cn("rounded-[var(--r-lg)] border border-rule bg-paper p-4 sm:p-5", className)}>{children}</div>;
 }
 
 /** Section heading: condensed display type, sentence case. */
@@ -56,10 +62,11 @@ export function PageTitle({ children, className }: { children: ReactNode; classN
 }
 
 const field =
-  "w-full rounded-[var(--r-sm)] border border-rule bg-paper px-3 text-[15px] text-iron placeholder:text-steel/70 focus:outline-none focus:border-plate-blue focus:ring-2 focus:ring-plate-blue/20";
+  // 16px on phones: iOS Safari zooms the page when focusing anything smaller
+  "w-full rounded-[var(--r-sm)] border border-rule bg-paper px-3 text-base text-iron sm:text-[15px] placeholder:text-steel/70 focus:outline-none focus:border-plate-blue focus:ring-2 focus:ring-plate-blue/20";
 
 export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn(field, "h-10", className)} {...rest} />;
+  return <input className={cn(field, "h-11 sm:h-10", className)} {...rest} />;
 }
 
 export function Textarea({ className, ...rest }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
@@ -68,7 +75,7 @@ export function Textarea({ className, ...rest }: TextareaHTMLAttributes<HTMLText
 
 export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn(field, "h-10", className)} {...rest}>
+    <select className={cn(field, "h-11 sm:h-10", className)} {...rest}>
       {children}
     </select>
   );
@@ -97,7 +104,7 @@ export function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-[var(--r-sm)] border px-3 py-1.5 text-sm transition-colors",
+        "min-h-11 rounded-[var(--r-sm)] border px-3.5 py-2 text-sm transition-colors sm:min-h-9 sm:py-1.5",
         active ? "border-iron bg-iron text-paper" : "border-rule bg-paper text-iron hover:border-iron/40",
       )}
     >
