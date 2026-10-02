@@ -4,6 +4,8 @@
 
 - Project lives in WSL; run node/npm via `wsl -d Ubuntu -- bash -ic "cd ~/Workspace/ideas/Gymora && ..."` (node comes from nvm).
 - Local DB: `gymora-db` container, port **5434** (5432/5433 belong to other projects).
+- `.env` now points at **Supabase** (`DATABASE_URL` = transaction pooler for the app, `DIRECT_URL` = session pooler for drizzle-kit). To work against the local DB, override `DATABASE_URL` and blank `DIRECT_URL`.
+- Every table has RLS enabled with no policies (blocks Supabase's REST API); keep `.enableRLS()` on new tables. Remote connections use TLS (`src/db/index.ts`).
 - All user-facing strings go in both `messages/en.json` and `messages/pt.json`.
 - AI output is always parsed through the tolerant zod schemas in `src/lib/types.ts`; AI text must be in the user's locale.
 - The training framework exists twice: `docs/training-framework.md` (full, with sources) and `src/lib/ai/framework.ts` (prompt). Keep them in sync; never cite unverified studies.

@@ -35,9 +35,20 @@ Useful scripts: `db:generate` (after editing `src/db/schema.ts`), `db:studio`, `
 
 ## Production (Supabase)
 
-1. Create a Supabase project → *Project Settings → Database → Connection string* (transaction pooler).
-2. Set `DATABASE_URL` to it, run `npm run db:migrate` once against it.
+1. Create a Supabase project → *Connect*. Set `DATABASE_URL` to the **transaction pooler** (port 6543, used by the app)
+   and `DIRECT_URL` to the **session pooler** (port 5432, used by migrations).
+2. `npm run db:migrate` (uses `DIRECT_URL`). All tables have Row Level Security on with no policies, so Supabase's
+   public REST API can't read them; the app connects as the table owner and isn't affected.
 3. Set `BETTER_AUTH_URL` to your public URL and a strong `BETTER_AUTH_SECRET`.
+4. `npx tsx scripts/db-check.ts` confirms the app can reach the database and that the connection is encrypted.
+
+### Copying local data to Supabase
+Run the migrations on Supabase first, then (Supabase must be empty; it runs in one transaction):
+```bash
+DIRECT_URL=$(grep -E '^DIRECT_URL=' .env | cut -d= -f2- | tr -d '"')
+docker exec gymora-db pg_dump -U gymora -d gymora --data-only --schema=public --no-owner --no-privileges \
+  | docker exec -i -e PGURL="$DIRECT_URL" gymora-db sh -c 'psql "$PGURL" -v ON_ERROR_STOP=1 --single-transaction'
+```
 
 ## AI models & limits
 

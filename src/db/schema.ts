@@ -13,6 +13,8 @@ import type { TrainingPlan, UserProfile } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
 /* Better Auth tables                                                  */
+/* (RLS on, no policies: blocks Supabase's public REST API; the app    */
+/* connects as the table owner, which RLS does not restrict)           */
 /* ------------------------------------------------------------------ */
 
 export const user = pgTable("user", {
@@ -23,7 +25,7 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
@@ -36,7 +38,7 @@ export const session = pgTable("session", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-});
+}).enableRLS();
 
 export const account = pgTable("account", {
   id: text("id").primaryKey(),
@@ -54,7 +56,7 @@ export const account = pgTable("account", {
   password: text("password"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
@@ -63,7 +65,7 @@ export const verification = pgTable("verification", {
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 /* ------------------------------------------------------------------ */
 /* Gymora tables                                                       */
@@ -77,7 +79,7 @@ export const profiles = pgTable("profiles", {
   data: jsonb("data").$type<UserProfile>().notNull(),
   onboardingCompletedAt: timestamp("onboarding_completed_at"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const trainingPlans = pgTable(
   "training_plans",
@@ -95,7 +97,7 @@ export const trainingPlans = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [index("training_plans_user_idx").on(t.userId)],
-);
+).enableRLS();
 
 export const workoutSessions = pgTable(
   "workout_sessions",
@@ -120,7 +122,7 @@ export const workoutSessions = pgTable(
     notes: text("notes"),
   },
   (t) => [index("workout_sessions_user_idx").on(t.userId, t.startedAt)],
-);
+).enableRLS();
 
 export const sessionSets = pgTable(
   "session_sets",
@@ -143,7 +145,7 @@ export const sessionSets = pgTable(
     completedAt: timestamp("completed_at").notNull().defaultNow(),
   },
   (t) => [index("session_sets_session_idx").on(t.sessionId)],
-);
+).enableRLS();
 
 export const cardioEntries = pgTable("cardio_entries", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -153,7 +155,7 @@ export const cardioEntries = pgTable("cardio_entries", {
   type: text("type").notNull(),
   seconds: integer("seconds").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const bodyWeights = pgTable(
   "body_weights",
@@ -166,4 +168,4 @@ export const bodyWeights = pgTable(
     measuredAt: timestamp("measured_at").notNull().defaultNow(),
   },
   (t) => [index("body_weights_user_idx").on(t.userId, t.measuredAt)],
-);
+).enableRLS();
