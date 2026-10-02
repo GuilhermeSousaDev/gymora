@@ -17,6 +17,8 @@ import {
   onboardingUnderstand,
 } from "@/app/actions/onboarding";
 import { compressImage } from "@/lib/image";
+import { withAiRetry } from "@/lib/action-result";
+import { repairPlan } from "@/app/actions/plans";
 import {
   REQUIRED_PROFILE_FIELDS,
   missingRequiredFields,
@@ -62,7 +64,10 @@ export function OnboardingWizard({ initialProfile, canExit }: { initialProfile: 
     if (mode === "import" && !planText.trim() && !planImage) return setError(t("needPlan"));
     setError("");
     setBusy(tc("aiThinking"));
-    const res = await onboardingUnderstand({ mode, text, profile, round: 1 });
+    const res = await withAiRetry(
+      () => onboardingUnderstand({ mode, text, profile, round: 1 }),
+      (sec) => setBusy(sec ? tc("aiRetrying", { s: sec }) : tc("aiThinking")),
+    );
     setBusy(null);
     if (!res.ok) {
       // AI unavailable: fall back to asking the required fields manually
@@ -86,12 +91,22 @@ export function OnboardingWizard({ initialProfile, canExit }: { initialProfile: 
     setStep("result");
     if (mode === "generate") {
       setBusy(t("generating"));
-      const res = await onboardingGenerate({ profile });
+      // Two short requests instead of one long one (the hosting gateway cuts requests at ~30s)
+      const res = await withAiRetry(() => onboardingGenerate({ profile }), (sec) => setBusy(sec ? tc("aiRetrying", { s: sec }) : t("generating")));
       if (!res.ok) return fail(res.error);
-      setPlan(res.data);
+      let next = res.data.plan;
+      if (res.data.needsRepair) {
+        setBusy(tc("aiImproving"));
+        const fixed = await withAiRetry(() => repairPlan({ plan: next, profile }), (sec) => setBusy(sec ? tc("aiRetrying", { s: sec }) : tc("aiImproving")), 2);
+        if (fixed.ok) next = fixed.data;
+      }
+      setPlan(next);
     } else {
       setBusy(t("reviewing"));
-      const res = await onboardingReview({ profile, planText, planImage: planImage?.data });
+      const res = await withAiRetry(
+        () => onboardingReview({ profile, planText, planImage: planImage?.data }),
+        (sec) => setBusy(sec ? tc("aiRetrying", { s: sec }) : t("reviewing")),
+      );
       if (!res.ok) return fail(res.error);
       setReview(res.data);
     }

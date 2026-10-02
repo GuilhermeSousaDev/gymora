@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { aiJson, aiJsonWithModel, isPrimaryModel } from "./client";
+import { aiJson, aiJsonWithModel, isPrimaryModel, timeLeft } from "./client";
 import { skeletonText, weeklySkeleton } from "@/lib/splits";
 import { TRAINING_FRAMEWORK } from "./framework";
 import { PATTERN_IDS } from "@/lib/exercise-art/ids";
@@ -298,6 +298,9 @@ async function enforceVolume(locale: string, profile: UserProfile, plan: Trainin
   const topped = topUpVolume(plan, profile);
   const issues = volumeIssues(topped, profile);
   if (!issues.length) return topped;
+  // Not enough time left in this request for another AI call: the caller can run `repairPlanVolume`
+  // as its own request (see `needsRepair`)
+  if (timeLeft() < REPAIR_MIN_MS) return topped;
   try {
     const { data: fixed, model } = await repairPlan(locale, profile, topped, issues);
     if (volumeIssues(fixed, profile).length >= issues.length) return topped;
@@ -307,6 +310,26 @@ async function enforceVolume(locale: string, profile: UserProfile, plan: Trainin
   } catch {
     return topped;
   }
+}
+
+/** A full-plan AI call takes ~10-15s; only start one when it can finish in this request. */
+const REPAIR_MIN_MS = 14_000;
+
+/** True when the plan still breaks the framework and an AI repair pass could help. */
+export function needsRepair(plan: TrainingPlan, profile: UserProfile) {
+  return volumeIssues(plan, profile).length > 0;
+}
+
+/** Second step of generation, run as its own request so each stays under the gateway timeout. */
+export async function repairPlanVolume(input: { locale: string; profile: UserProfile; plan: TrainingPlan }) {
+  const models: string[] = [];
+  const fixed = await enforceVolume(input.locale, input.profile, input.plan, models);
+  if (!models.length) return fixed;
+  return {
+    ...fixed,
+    generatedBy: [input.plan.generatedBy, ...models].filter(Boolean).join(" + "),
+    fallback: input.plan.fallback || models.some((m) => !isPrimaryModel(m)),
+  };
 }
 
 export async function generatePlan(input: { locale: string; profile: UserProfile; instructions?: string }) {

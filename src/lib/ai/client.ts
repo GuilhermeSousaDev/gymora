@@ -1,5 +1,26 @@
 import "server-only";
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { z } from "zod";
+
+/*
+ * Time budget per request. Netlify's gateway answers 504 after ~30s, so every AI call made while
+ * handling one request shares a deadline: no wait or retry is started if it can't finish in time.
+ * Instead the request fails fast with "busy, retry in N s" and the browser retries.
+ */
+const DEFAULT_BUDGET_MS = Number(process.env.AI_REQUEST_BUDGET_MS ?? 24_000);
+/** Don't start a model call with less time than this left. */
+const MIN_CALL_MS = 6_000;
+const budget = new AsyncLocalStorage<{ deadline: number }>();
+
+export function withBudget<T>(fn: () => Promise<T>, ms = DEFAULT_BUDGET_MS): Promise<T> {
+  return budget.run({ deadline: Date.now() + ms }, fn);
+}
+
+/** Milliseconds left for AI work in the current request. */
+export function timeLeft(): number {
+  const store = budget.getStore();
+  return store ? store.deadline - Date.now() : DEFAULT_BUDGET_MS;
+}
 
 type ContentPart =
   | { type: "text"; text: string }
@@ -14,6 +35,8 @@ export class AIError extends Error {
   constructor(
     message: string,
     public readonly attempts: string[] = [],
+    /** Seconds after which trying again is likely to work (rate limits, out of time) */
+    public readonly retryAfter?: number,
   ) {
     super(message);
   }
@@ -22,10 +45,20 @@ export class AIError extends Error {
 class HttpError extends Error {
   constructor(
     public readonly status: number,
-    body: string,
+    public readonly body: string,
     public readonly retryAfter: number | null,
   ) {
-    super(`HTTP ${status}: ${body}`);
+    super(`HTTP ${status}: ${body.slice(0, 400)}`);
+  }
+}
+
+/** Groq's json_validate_failed error carries what the model wrote; it's often usable as-is. */
+function failedGeneration(err: unknown): string | null {
+  if (!(err instanceof HttpError)) return null;
+  try {
+    return JSON.parse(err.body)?.error?.failed_generation ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -64,10 +97,7 @@ function retryAfterSeconds(res: Response, body: string): number | null {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Max wait for a short per-minute rate limit before falling back to the next model. */
-const MAX_RATE_LIMIT_WAIT_S = 25;
-
-type CallOpts = { json: boolean; temperature: number; maxTokens: number; effort: "low" | "medium" };
+type CallOpts = { json: boolean; temperature: number; maxTokens: number; effort: "low" | "medium"; timeoutMs: number };
 
 async function callModel(model: string, messages: ChatMessage[], opts: CallOpts) {
   const body: Record<string, unknown> = {
@@ -86,13 +116,13 @@ async function callModel(model: string, messages: ChatMessage[], opts: CallOpts)
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(opts.timeoutMs),
     cache: "no-store",
   });
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new HttpError(res.status, text.slice(0, 400), retryAfterSeconds(res, text));
+    throw new HttpError(res.status, text, retryAfterSeconds(res, text));
   }
   const data = await res.json();
   const content: string | undefined = data?.choices?.[0]?.message?.content;
@@ -124,18 +154,23 @@ export async function aiJsonWithModel<T extends z.ZodType>(
 ): Promise<{ data: z.infer<T>; model: string }> {
   const models = opts.vision ? visionModels() : textModels();
   const attempts: string[] = [];
+  // Shortest "try again in" any provider gave us, to tell the browser when to retry
+  let soonest: number | undefined;
+  const outOfTime = () => new AIError("Out of time for this request", attempts, Math.ceil(soonest ?? 5));
 
   for (const model of models) {
     // Vision models on Groq don't all support json mode; ask for JSON in the prompt instead.
     let json = !opts.vision;
     let waited = false;
     for (let attempt = 0; attempt < 3; attempt++) {
+      if (timeLeft() < MIN_CALL_MS) throw outOfTime();
       try {
         const raw = await callModel(model, messages, {
           json,
           temperature: opts.temperature ?? 0.4,
           maxTokens: opts.maxTokens ?? 6000,
           effort: opts.effort ?? "medium",
+          timeoutMs: Math.min(90_000, timeLeft() - 500),
         });
         const parsed = schema.safeParse(extractJson(raw));
         if (!parsed.success) throw new Error(`Schema mismatch: ${parsed.error.message.slice(0, 200)}`);
@@ -146,18 +181,36 @@ export async function aiJsonWithModel<T extends z.ZodType>(
         console.warn(`[ai] ${model}${json ? " (json mode)" : ""} failed. ${msg.slice(0, 160)}`);
 
         if (json && msg.includes("json_validate_failed")) {
+          // Salvage the model's answer instead of paying for the whole call again
+          const salvaged = failedGeneration(err);
+          if (salvaged) {
+            try {
+              const parsed = schema.safeParse(extractJson(salvaged));
+              if (parsed.success) return { data: parsed.data, model };
+            } catch {
+              // not parseable: fall through to a plain-mode retry
+            }
+          }
           json = false; // same model, parse the JSON ourselves
           continue;
         }
         const e = err instanceof HttpError ? err : null;
-        if (e?.status === 429 && !waited && e.retryAfter != null && e.retryAfter <= MAX_RATE_LIMIT_WAIT_S) {
-          waited = true;
-          await sleep(e.retryAfter * 1000 + 500);
-          continue;
+        if (e?.status === 429 && e.retryAfter != null) {
+          soonest = Math.min(soonest ?? Infinity, e.retryAfter);
+          // Wait it out only if the call can still finish within this request's budget
+          const waitMs = e.retryAfter * 1000 + 500;
+          if (!waited && waitMs < timeLeft() - MIN_CALL_MS - 4_000) {
+            waited = true;
+            await sleep(waitMs);
+            continue;
+          }
         }
+        // Groq answers 413 when this minute's token budget is used up (no Retry-After given)
+        if (e?.status === 413 && /tokens per minute|TPM/i.test(e.body)) soonest = Math.min(soonest ?? Infinity, 20);
+        if (err instanceof Error && err.name === "TimeoutError") throw outOfTime();
         break; // next model
       }
     }
   }
-  throw new AIError("All AI models failed", attempts);
+  throw new AIError("All AI models failed", attempts, soonest !== undefined ? Math.ceil(soonest) : undefined);
 }

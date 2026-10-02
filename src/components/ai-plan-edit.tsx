@@ -5,6 +5,7 @@ import { Wand2 } from "lucide-react";
 import { editPlanWithAi } from "@/app/actions/plans";
 import { Button, ErrorText, Spinner, Textarea } from "./ui";
 import { diffPlans } from "@/lib/plan-diff";
+import { withAiRetry } from "@/lib/action-result";
 import type { VolumeIssue } from "@/lib/ai/tasks";
 import type { TrainingPlan, UserProfile } from "@/lib/types";
 
@@ -33,6 +34,7 @@ export function AiPlanEdit({
   const tw = useTranslations("enums.weekdaysLong");
   const [request, setRequest] = useState("");
   const [busy, setBusy] = useState(false);
+  const [retryIn, setRetryIn] = useState(0);
   const [error, setError] = useState("");
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [applied, setApplied] = useState(false);
@@ -42,7 +44,7 @@ export function AiPlanEdit({
     setBusy(true);
     setError("");
     setApplied(false);
-    const res = await editPlanWithAi({ plan, request, profile });
+    const res = await withAiRetry(() => editPlanWithAi({ plan, request, profile }), setRetryIn);
     setBusy(false);
     if (!res.ok) return setError(res.error === "ai" ? tc("aiFailed") : tc("error"));
     setSuggestion(res.data);
@@ -71,7 +73,7 @@ export function AiPlanEdit({
           />
           <ErrorText>{error}</ErrorText>
           {busy ? (
-            <Spinner label={t("thinking")} />
+            <Spinner label={retryIn ? tc("aiRetrying", { s: retryIn }) : t("thinking")} />
           ) : (
             <div className="flex items-center gap-3">
               <Button variant="secondary" onClick={suggest} disabled={!request.trim()}>

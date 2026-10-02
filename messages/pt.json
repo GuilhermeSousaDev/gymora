@@ -21,7 +21,9 @@
     "aiFailed": "A IA está ocupada agora (todos os modelos falharam). Tente novamente em um minuto.",
     "aiThinking": "A IA do Gymora está pensando…",
     "none": "Nenhum",
-    "confirm": "Tem certeza?"
+    "confirm": "Tem certeza?",
+    "aiRetrying": "A IA está ocupada. Tentando de novo em {s}s…",
+    "aiImproving": "Conferindo o plano com as regras de treino…"
   },
   "nav": {
     "dashboard": "Painel",

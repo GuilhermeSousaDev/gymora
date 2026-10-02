@@ -21,7 +21,9 @@
     "aiFailed": "The AI is busy right now (all models failed). Please try again in a minute.",
     "aiThinking": "Gymora AI is thinking…",
     "none": "None",
-    "confirm": "Are you sure?"
+    "confirm": "Are you sure?",
+    "aiRetrying": "The AI is busy. Trying again in {s}s…",
+    "aiImproving": "Checking the plan against the training rules…"
   },
   "nav": {
     "dashboard": "Dashboard",

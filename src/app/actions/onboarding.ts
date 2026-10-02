@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { bodyWeights, profiles, trainingPlans } from "@/db/schema";
 import { requireUser } from "@/lib/session";
-import { generatePlan, reviewPlan, understandUser } from "@/lib/ai/tasks";
+import { generatePlan, needsRepair, reviewPlan, understandUser } from "@/lib/ai/tasks";
 import {
   missingRequiredFields,
   trainingPlanSchema,
@@ -55,7 +55,11 @@ export async function onboardingUnderstand(input: {
 export async function onboardingGenerate(input: { profile: unknown; instructions?: string }) {
   await requireUser();
   const profile = userProfileSchema.parse(input.profile ?? {});
-  return runAi((locale) => generatePlan({ locale, profile, instructions: input.instructions?.slice(0, 1000) }));
+  // Draft only; if it still needs an AI repair, the browser calls `repairPlan` as a second request
+  return runAi(async (locale) => {
+    const plan = await generatePlan({ locale, profile, instructions: input.instructions?.slice(0, 1000) });
+    return { plan, needsRepair: needsRepair(plan, profile) };
+  });
 }
 
 export async function onboardingReview(input: { profile: unknown; planText?: string; planImage?: string }) {

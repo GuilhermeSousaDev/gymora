@@ -1,16 +1,22 @@
 import "server-only";
 import { getLocale } from "next-intl/server";
-import { AIError } from "@/lib/ai/client";
+import { AIError, withBudget } from "@/lib/ai/client";
+import type { ActionResult } from "@/lib/action-result";
 
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: "ai" | "invalid" | "unknown" };
+export type { ActionResult } from "@/lib/action-result";
 
-/** Runs an AI task and turns failures into a serializable result. */
+/**
+ * Runs an AI task inside the per-request time budget (Netlify cuts requests at ~30s) and turns
+ * failures into a serializable result. "ai" errors carry `retryAfter` so the browser can retry.
+ */
 export async function runAi<T>(fn: (locale: string) => Promise<T>): Promise<ActionResult<T>> {
   try {
-    return { ok: true, data: await fn(await getLocale()) };
+    const locale = await getLocale();
+    return { ok: true, data: await withBudget(() => fn(locale)) };
   } catch (err) {
     console.error("[ai action]", err instanceof AIError ? err.attempts : err);
-    return { ok: false, error: err instanceof AIError ? "ai" : "unknown" };
+    if (err instanceof AIError) return { ok: false, error: "ai", retryAfter: err.retryAfter };
+    return { ok: false, error: "unknown" };
   }
 }
 

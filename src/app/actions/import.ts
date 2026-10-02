@@ -2,7 +2,7 @@
 import { getTranslations } from "next-intl/server";
 import { requireOnboardedUser } from "@/lib/session";
 import { extractPlan, transcribePlanImage } from "@/lib/ai/tasks";
-import { AIError } from "@/lib/ai/client";
+import { AIError, withBudget } from "@/lib/ai/client";
 import { assignWeekdays, parsePlanText, type ParsedDay } from "@/lib/plan-parser";
 import { trainingPlanSchema, type TrainingPlan } from "@/lib/types";
 import { isValidImageDataUrl, type ActionResult } from "./helpers";
@@ -46,6 +46,11 @@ const countExercises = (days: { exercises: unknown[] }[]) => days.reduce((a, d) 
 
 /** Reads a plan the user already has, exactly as written, and returns it for preview (nothing is saved). */
 export async function importPlan(input: ImportInput): Promise<ActionResult<ImportResult>> {
+  // Same per-request time budget as other AI actions (gateway timeout)
+  return withBudget(() => importPlanInner(input));
+}
+
+async function importPlanInner(input: ImportInput): Promise<ActionResult<ImportResult>> {
   const { profile } = await requireOnboardedUser();
   const t = await getTranslations("import");
 
@@ -60,7 +65,7 @@ export async function importPlan(input: ImportInput): Promise<ActionResult<Impor
     }
   } catch (err) {
     console.error("[import] could not read input", err);
-    return { ok: false, error: err instanceof AIError ? "ai" : "invalid" };
+    return err instanceof AIError ? { ok: false, error: "ai", retryAfter: err.retryAfter } : { ok: false, error: "invalid" };
   }
   if (!text.trim()) return { ok: false, error: "invalid" };
 

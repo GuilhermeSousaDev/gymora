@@ -12,6 +12,8 @@
 - Physique photos must never be persisted (memory only, sent to the vision model, then dropped).
 - Secrets (`REMOTE_AI_API_KEY`, DB URLs, auth secret) are read only in `server-only` modules; never use `NEXT_PUBLIC_` for them. Netlify's secrets scan skips `.next/cache` (see `netlify.toml`) because Turbopack's build cache stores env values; verify `.next/static` never contains a secret.
 - Groq free tier is rate-limited; test AI changes with `npm run ai:smoke`, one run at a time.
+- Netlify's gateway answers 504 after ~30s. All AI work in one request shares a 24s budget (`withBudget`/`timeLeft` in `src/lib/ai/client.ts`, applied by `runAi`); out of time → `{ error: "ai", retryAfter }` and the browser retries with `withAiRetry` (`src/lib/action-result.ts`). Plan generation is two requests: draft, then `repairPlan` only if `needsRepair`. Never chain long AI calls in one request.
+- Tests must never use port 3000 (the user's dev server talks to Supabase): run test servers on another port with the local `DATABASE_URL` and a matching `BETTER_AUTH_URL`.
 - Plan generation: the weekly split is chosen in code (`src/lib/splits.ts`), the AI only fills exercises; `volumeIssues` in `src/lib/ai/tasks.ts` checks volume, frequency (>=2x/week) and filler days. Check quality with `scripts/plan-quality-smoke.ts`.
 - Plan import (`src/app/actions/import.ts`): deterministic parser first (`src/lib/plan-parser.ts`, test with `scripts/parser-check.ts`), AI only when the text is messy. Never change what the user wrote.
 

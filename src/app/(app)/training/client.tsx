@@ -11,6 +11,7 @@ import {
   createPlan,
   deletePlan,
   generateAnotherPlan,
+  repairPlan,
   revisePlanFromFeedback,
   setActivePlan,
 } from "@/app/actions/plans";
@@ -18,6 +19,7 @@ import { Button, Card, CardTitle, ErrorText, Spinner, Textarea } from "@/compone
 import { PlanView, ReviewView } from "@/components/plan-view";
 import { AiPlanEdit } from "@/components/ai-plan-edit";
 import { compressImage } from "@/lib/image";
+import { withAiRetry } from "@/lib/action-result";
 import type { PhotoFeedback, PlanReview, TrainingPlan } from "@/lib/types";
 
 function useAiError() {
@@ -81,16 +83,29 @@ export function GeneratePlanCard() {
   const [instructions, setInstructions] = useState("");
   const [plan, setPlan] = useState<TrainingPlan | null>(null);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [saving, startSave] = useTransition();
 
   async function generate() {
     setBusy(true);
     setError("");
-    const res = await generateAnotherPlan(instructions);
+    setStatus(tc("aiThinking"));
+    const onWait = (s: number) => setStatus(s ? tc("aiRetrying", { s }) : tc("aiThinking"));
+    // Two short requests instead of one long one (the hosting gateway cuts requests at ~30s)
+    const res = await withAiRetry(() => generateAnotherPlan(instructions), onWait);
+    if (!res.ok) {
+      setBusy(false);
+      return setError(errorText(res.error));
+    }
+    let next = res.data.plan;
+    if (res.data.needsRepair) {
+      setStatus(tc("aiImproving"));
+      const fixed = await withAiRetry(() => repairPlan({ plan: next }), (s) => setStatus(s ? tc("aiRetrying", { s }) : tc("aiImproving")), 2);
+      if (fixed.ok) next = fixed.data; // if it fails, the draft (with the instant fixes) is still good
+    }
     setBusy(false);
-    if (!res.ok) return setError(errorText(res.error));
-    setPlan(res.data);
+    setPlan(next);
   }
 
   const save = (makeActive: boolean) =>
@@ -118,7 +133,7 @@ export function GeneratePlanCard() {
             placeholder={t("generatePlaceholder")}
           />
           <ErrorText>{error}</ErrorText>
-          {busy ? <Spinner label={tc("aiThinking")} /> : <Button onClick={generate}>{t("generate")}</Button>}
+          {busy ? <Spinner label={status} /> : <Button onClick={generate}>{t("generate")}</Button>}
         </div>
       ) : (
         <div className="space-y-4">

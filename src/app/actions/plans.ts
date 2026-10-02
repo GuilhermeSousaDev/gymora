@@ -5,7 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
 import { trainingPlans } from "@/db/schema";
 import { getProfile, requireOnboardedUser, requireUser } from "@/lib/session";
-import { analyzePhoto, editPlan, generatePlan, revisePlan } from "@/lib/ai/tasks";
+import { analyzePhoto, editPlan, generatePlan, needsRepair, repairPlanVolume, revisePlan } from "@/lib/ai/tasks";
 import { photoFeedbackSchema, trainingPlanSchema, userProfileSchema, type TrainingPlan } from "@/lib/types";
 import { getActivePlan } from "@/lib/data";
 import { isValidImageDataUrl, runAi, type ActionResult } from "./helpers";
@@ -84,9 +84,23 @@ export async function createBlankPlan(): Promise<ActionResult<{ id: string }>> {
 
 export async function generateAnotherPlan(instructions?: string) {
   const { profile } = await requireOnboardedUser();
-  return runAi((locale) =>
-    generatePlan({ locale, profile: profile.data, instructions: instructions?.slice(0, 1000) }),
-  );
+  return runAi(async (locale) => {
+    const plan = await generatePlan({ locale, profile: profile.data, instructions: instructions?.slice(0, 1000) });
+    return { plan, needsRepair: needsRepair(plan, profile.data) };
+  });
+}
+
+/**
+ * Second step of plan generation (its own request, so neither step hits the gateway timeout).
+ * During onboarding there's no saved profile yet, so the in-progress one is accepted.
+ */
+export async function repairPlan(input: { plan: unknown; profile?: unknown }) {
+  const user = await requireUser();
+  const saved = await getProfile(user.id);
+  const profile = saved?.onboardingCompletedAt ? saved.data : userProfileSchema.parse(input.profile ?? {});
+  const plan = trainingPlanSchema.safeParse(input.plan);
+  if (!plan.success) return { ok: false as const, error: "invalid" as const };
+  return runAi((locale) => repairPlanVolume({ locale, profile, plan: plan.data }));
 }
 
 /** The photo only lives in memory for this request — it is never written anywhere. */

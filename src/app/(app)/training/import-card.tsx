@@ -9,6 +9,7 @@ import { Button, Card, CardTitle, ErrorText, Input, Label, Spinner, Textarea } f
 import { PlanView } from "@/components/plan-view";
 import { AiPlanEdit } from "@/components/ai-plan-edit";
 import { compressImage } from "@/lib/image";
+import { withAiRetry } from "@/lib/action-result";
 
 type Attachment = { name: string; kind: "image" | "file"; data: string };
 
@@ -30,6 +31,7 @@ export function ImportPlanCard() {
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const [retryIn, setRetryIn] = useState(0);
   const [error, setError] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
@@ -48,11 +50,11 @@ export function ImportPlanCard() {
     setBusy(true);
     setError("");
     setSavedId(null);
-    const res = await importPlan({
+    const res = await withAiRetry(() => importPlan({
       text,
       image: attachment?.kind === "image" ? attachment.data : undefined,
       file: attachment?.kind === "file" ? { name: attachment.name, data: attachment.data } : undefined,
-    });
+    }), setRetryIn);
     setBusy(false);
     if (!res.ok) return setError(res.error === "ai" ? tc("aiFailed") : t("nothingFound"));
     setResult(res.data);
@@ -117,7 +119,7 @@ export function ImportPlanCard() {
           )}
           <ErrorText>{error}</ErrorText>
           {busy ? (
-            <Spinner label={t("reading")} />
+            <Spinner label={retryIn ? tc("aiRetrying", { s: retryIn }) : t("reading")} />
           ) : (
             <Button onClick={read} disabled={!text.trim() && !attachment}>
               {t("read")}
