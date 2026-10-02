@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/*
+ * "Chalk & plates" — Gymora's palette comes from the gym floor:
+ * chalk-white ground, iron ink, and the four competition plate colors.
+ * Plate colors always MEAN something (never decoration):
+ *   red = working set · blue = resting · yellow = cardio · green = done / go
+ */
+:root {
+  --chalk: #eef0ec;
+  --paper: #ffffff;
+  --paper-2: #f5f6f3;
+  --iron: #18212b;
+  --steel: #5a6571;
+  --rule: #d6dad7;
+
+  --plate-red: #c8302a;
+  --plate-blue: #1f5bb8;
+  --plate-yellow: #e0a800; /* fills (iron text on top) */
+  --plate-gold: #b88a00; /* yellow for text/chart marks on white */
+  --plate-green: #23804a;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+}
+
+@theme inline {
+  --color-chalk: var(--chalk);
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-iron: var(--iron);
+  --color-steel: var(--steel);
+  --color-rule: var(--rule);
+  --color-plate-red: var(--plate-red);
+  --color-plate-blue: var(--plate-blue);
+  --color-plate-yellow: var(--plate-yellow);
+  --color-plate-gold: var(--plate-gold);
+  --color-plate-green: var(--plate-green);
+
+  /* neutral aliases used across the app */
+  --color-bg: var(--chalk);
+  --color-surface: var(--paper);
+  --color-surface-2: var(--paper-2);
+  --color-border: var(--rule);
+  --color-text: var(--iron);
+  --color-muted: var(--steel);
+  --color-danger: var(--plate-red);
+
+  --font-sans: var(--font-barlow);
+  --font-display: var(--font-barlow-condensed);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--chalk);
+  color: var(--iron);
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--plate-blue);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

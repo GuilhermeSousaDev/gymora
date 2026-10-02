@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: gymora-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gymora
+      POSTGRES_PASSWORD: gymora
+      POSTGRES_DB: gymora
+    ports:
+      # 5432/5433 are already used by other local projects
+      - "5434:5432"
+    volumes:
+      - gymora-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gymora -d gymora"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  gymora-db-data:
